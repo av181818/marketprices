@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Prices</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .price-container {
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .price {
+            font-size: 2em;
+            color: #333;
+            margin: 10px 0;
+        }
+        .price-sentence {
+            margin: 15px 0;
+            font-size: 1.1em;
+        }
+        .hashtags {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .refresh-button {
+            background-color: #2196F3;
+            padding: 12px 24px;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        .refresh-button:hover {
+            background-color: #1976D2;
+        }
+        .copy-button {
+            background-color: #4CAF50;
+        }
+        .copy-button:hover {
+            background-color: #45a049;
+        }
+        .summary-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            width: 100%;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .summary-container h2 {
+            text-align: center;
+            margin-top: 0;
+            color: #333;
+        }
+        .summary-copy-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .summary-copy-button:hover {
+            background-color: #45a049;
+        }
+        .summary-copy-button.copied {
+            background-color: #666;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .summary-label {
+            font-weight: bold;
+            color: #333;
+        }
+        .summary-price {
+            color: #2196F3;
+            font-weight: bold;
+        }
+        .summary-timestamp {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="refresh-button" onclick="refreshAllPrices()">Refresh All Prices</button>
+        
+        <div class="summary-container">
+            <h2>Market Summary</h2>
+            <button class="summary-copy-button" onclick="copyAllPrices()">Copy All Prices</button>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <span class="summary-label">Bitcoin:</span>
+                    <span class="summary-price" id="summary-bitcoin">Loading...</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Ethereum:</span>
+                    <span class="summary-price" id="summary-ethereum">Loading...</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">S&P 500:</span>
+                    <span class="summary-price" id="summary-sp500">Loading...</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Nasdaq:</span>
+                    <span class="summary-price" id="summary-nasdaq">Loading...</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Gold:</span>
+                    <span class="summary-price" id="summary-gold">Loading...</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Crude Oil:</span>
+                    <span class="summary-price" id="summary-crude">Loading...</span>
+                </div>
+            </div>
+            <div class="summary-timestamp" id="summary-timestamp"></div>
+        </div>
+    </div>
+
+    <script>
+        const markets = {
+            bitcoin: { ticker: 'BTC-USD', name: 'Bitcoin', tickerSymbol: '$BTC' },
+            ethereum: { ticker: 'ETH-USD', name: 'Ethereum', tickerSymbol: '$ETH' },
+            sp500: { ticker: '^GSPC', name: 'S&P 500', tickerSymbol: '' },
+            nasdaq: { ticker: '^IXIC', name: 'Nasdaq', tickerSymbol: '' },
+            gold: { ticker: 'GC=F', name: 'Gold', tickerSymbol: '' },
+            crude: { ticker: 'CL=F', name: 'Crude Oil', tickerSymbol: '' }
+        };
+
+        async function fetchPrice(marketId) {
+            const market = markets[marketId];
+            try {
+                // Using a CORS proxy to access Yahoo Finance API
+                const corsProxy = 'https://corsproxy.io/?';
+                const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${market.ticker}?interval=1d&range=1d`;
+                const response = await fetch(corsProxy + encodeURIComponent(yahooUrl));
+                
+                if (!response.ok) {
+                    console.error(`HTTP error for ${market.name}:`, response.status, response.statusText);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log(`Response for ${market.name}:`, data);
+
+                if (!data.chart || !data.chart.result || !data.chart.result[0] || !data.chart.result[0].meta) {
+                    console.error(`Invalid data format for ${market.name}:`, data);
+                    throw new Error('Invalid API response format');
+                }
+
+                const price = data.chart.result[0].meta.regularMarketPrice;
+                if (!price) {
+                    console.error(`No price found for ${market.name}`);
+                    throw new Error('No price data available');
+                }
+
+                const formattedPrice = price.toLocaleString('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: marketId === 'xrp' || marketId === 'doge' ? 4 : 2,
+                    maximumFractionDigits: marketId === 'xrp' || marketId === 'doge' ? 4 : 2
+                });
+
+                // Update summary price
+                document.getElementById(`summary-${marketId}`).textContent = formattedPrice;
+
+                const now = new Date();
+                // Update summary timestamp
+                document.getElementById('summary-timestamp').textContent = 
+                    `Last updated: ${now.toLocaleTimeString()} ${now.toLocaleDateString()}`;
+            } catch (error) {
+                console.error(`Error fetching ${market.name} price:`, error);
+                document.getElementById(`summary-${marketId}`).textContent = 'Unavailable';
+            }
+        }
+
+        async function refreshAllPrices() {
+            const refreshButton = document.querySelector('.refresh-button');
+            refreshButton.disabled = true;
+            refreshButton.textContent = 'Updating...';
+            
+            try {
+                for (const marketId in markets) {
+                    await fetchPrice(marketId);
+                    // Add a small delay between requests to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            } finally {
+                refreshButton.disabled = false;
+                refreshButton.textContent = 'Refresh All Prices';
+            }
+        }
+
+        function copyAllPrices() {
+            const prices = [];
+            for (const marketId in markets) {
+                const price = document.getElementById(`summary-${marketId}`).textContent;
+                const market = markets[marketId];
+                if (price !== 'Unavailable') {
+                    prices.push(`${market.name} ${market.tickerSymbol ? `(${market.tickerSymbol})` : ''}: ${price}`);
+                }
+            }
+
+            const hashtags = [
+                '#StockMarket', '#Crypto', '#Bitcoin', '#Gold', '#BuyTheDip'
+            ].join(' ');
+
+            const textToCopy = '📈Market Price Drop!\n\n' + prices.join('\n') + '\n\n' + hashtags;
+
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => {
+                    const button = document.querySelector('.summary-copy-button');
+                    button.textContent = 'Copied!';
+                    button.classList.add('copied');
+                    setTimeout(() => {
+                        button.textContent = 'Copy All Prices';
+                        button.classList.remove('copied');
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                    alert('Failed to copy text');
+                });
+        }
+
+        window.onload = refreshAllPrices;
+    </script>
+</body>
+</html>
