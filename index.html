@@ -255,10 +255,10 @@
             }
 
             const hashtags = [
-                '#StockMarket', '#Crypto'
+                '', ''
             ].join(' ');
 
-            const textToCopy = '📈Market Price Drop!\n\n' + prices.join('\n') + '\n\n' + hashtags;
+            const textToCopy = '📈Market Price Drop!\n\n' + prices.join('\n') + '\n\n';
 
             navigator.clipboard.writeText(textToCopy)
                 .then(() => {
