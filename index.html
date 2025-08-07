@@ -207,12 +207,22 @@
                     throw new Error('No price data available');
                 }
 
-                const formattedPrice = price.toLocaleString('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                    minimumFractionDigits: marketId === 'xrp' || marketId === 'doge' ? 4 : 2,
-                    maximumFractionDigits: marketId === 'xrp' || marketId === 'doge' ? 4 : 2
-                });
+                let formattedPrice;
+                if (marketId === 'sp500' || marketId === 'nasdaq') {
+                    // Format S&P 500 and Nasdaq as plain numbers with two decimal places and thousands separator
+                    formattedPrice = price.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                } else {
+                    // Format other markets as currency
+                    formattedPrice = price.toLocaleString('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: marketId === 'xrp' || marketId === 'doge' ? 4 : 2,
+                        maximumFractionDigits: marketId === 'xrp' || marketId === 'doge' ? 4 : 2
+                    });
+                }
 
                 // Update summary price
                 document.getElementById(`summary-${marketId}`).textContent = formattedPrice;
